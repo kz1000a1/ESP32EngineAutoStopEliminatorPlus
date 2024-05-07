@@ -41,6 +41,9 @@ enum debug_mode {
 #define N 0x02
 #define D 0x01
 
+// Threshold for change I -> S mode
+#define ACCEL_THRESHOLD 40
+
 extern enum debug_mode DebugMode;
 
 // for Calculate Check Sum
