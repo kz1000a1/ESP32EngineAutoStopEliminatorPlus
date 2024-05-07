@@ -2,7 +2,12 @@
 // Engine auto start-stop system eliminator firmware for SUBARU Levorg VN5
 //
 #include "driver/twai.h"
+#include "Unit_4RELAY.h"
 #include "subaru_levorg_vnx.h"
+
+// Pins used to connect to 4-Relay Unit:
+#define SDA_PIN GPIO_NUM_26
+#define SCL_PIN GPIO_NUM_32
 
 // Pins used to connect to CAN bus transceiver:
 #define RX_PIN GPIO_NUM_21
@@ -10,10 +15,25 @@
 // #define RX_PIN GPIO_NUM_19
 // #define TX_PIN GPIO_NUM_22
 
+UNIT_4RELAY relay;
+
 #define POLLING_RATE_MS 1000
 static bool driver_installed = false;
 
 enum debug_mode DebugMode = DEBUG;
+
+
+uint16_t bytesToUint(uint8_t raw[], int shift, int size) {
+  uint16_t result = 0;
+
+  for (int i = 0; i < size; i++) {
+    result = result << (sizeof raw[0] * 8);
+    for (int j = 0; j < sizeof raw[0] * 8; j++) {
+      result += raw[i + shift] & (1 << j);
+    }
+  }
+  return result;
+}
 
 
 void print_frame(twai_message_t* twai_frame) {
@@ -120,6 +140,11 @@ void setup() {
       ;
   }
 
+  // Initialize I2C
+  relay.begin(&Wire, SDA_PIN, SCL_PIN);
+  relay.Init(1);  // Set the lamp and relay to synchronous mode(Async = 0,Sync = 1).
+  relay.relayAll(0);
+  
   // Initialize configuration structures using macro initializers
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, (gpio_num_t)RX_PIN, TWAI_MODE_NORMAL);
   twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();  //Look in the api-reference for other speed sets.
@@ -168,7 +193,10 @@ void loop() {
   static enum status Status = PROCESSING;
   static uint16_t PreviousCanId = CAN_ID_CCU;
   static uint8_t Retry = 0;
-
+  static uint8_t Shift = 0;
+  static float AccelPos = 0;
+  static float Speed = 0;
+  
   if (!driver_installed) {
     // Driver not installed
     delay(1000);
@@ -189,6 +217,47 @@ void loop() {
 
       if (DebugMode != CANDUMP) {
         switch (rx_frame.identifier) {
+          case CAN_ID_ECU:
+            AccelPos = bytesToUint(rx_frame.data, 4, 1) / 2.55;
+            // Serial.printf("Accel = %3.2f \%\n",AccelPos);
+            break;
+          
+          case CAN_ID_MCU:
+            if(Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
+            }
+            if((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
+            }
+            Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
+            break;
+
+          case CAN_ID_SCU:
+            if (Shift != (rx_frame.data[3] & 0x07)) {
+              switch (rx_frame.data[3] & 0x07) {
+                case P:
+                  if (DebugMode == DEBUG) {
+                    Serial.printf("# Information: Change Another to P.\n");
+                  }
+                  break;
+                case R:
+                  if (DebugMode == DEBUG) {
+                    Serial.printf("# Information: Change Another to R.\n");
+                  }
+                  break;
+                case N:
+                  if (DebugMode == DEBUG) {
+                    Serial.printf("# Information: Change Another to N.\n");
+                  }
+                  break;
+                case D:
+                  if (DebugMode == DEBUG) {
+                    Serial.printf("# Information: Change Another to D.\n");
+                  }
+                  break;
+              }
+              Shift = rx_frame.data[3] & 0x07;
+            }
+            break;
+
           case CAN_ID_TCU:
             if ((rx_frame.data[2] & 0x08) != 0x08) {
               TcuStatus = NOT_READY;
@@ -257,12 +326,12 @@ void loop() {
             PreviousCanId = rx_frame.identifier;
             break;
 
-          default:  // Unexpected can id
-            if (DebugMode == DEBUG) {
+          // default:  // Unexpected can id
+            // if (DebugMode == DEBUG) {
               // Output Warning message
-              Serial.printf("# Warning: Unexpected can id (0x%03x).\n", rx_frame.identifier);
-            }
-            break;
+              // Serial.printf("# Warning: Unexpected can id (0x%03x).\n", rx_frame.identifier);
+            // }
+            // break;
         }
       }
     }
