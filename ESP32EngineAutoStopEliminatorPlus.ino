@@ -10,10 +10,10 @@
 #define SCL_PIN GPIO_NUM_32
 
 // Pins used to connect to CAN bus transceiver:
-#define RX_PIN GPIO_NUM_21
-#define TX_PIN GPIO_NUM_20
-// #define RX_PIN GPIO_NUM_19
-// #define TX_PIN GPIO_NUM_22
+// #define RX_PIN GPIO_NUM_21
+// #define TX_PIN GPIO_NUM_20
+#define RX_PIN GPIO_NUM_19
+#define TX_PIN GPIO_NUM_22
 
 UNIT_4RELAY relay;
 
