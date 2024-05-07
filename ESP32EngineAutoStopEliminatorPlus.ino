@@ -350,6 +350,12 @@ void loop() {
               TcuStatus = ENGINE_STOP;
               Status = PROCESSING;
               Retry = 0;
+              Shift = 0;
+              AccelPos = 0;
+              Speed = 0;
+              View = false;
+              SMode = false;
+              SModeStart = 0;
             } else if (rx_frame.data[6] & 0x40) {
               if (DebugMode == DEBUG) {
                 // Output Information message
