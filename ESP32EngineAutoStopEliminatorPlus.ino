@@ -134,14 +134,32 @@ bool if_can_message_receive_is_pendig() {
 
 
 void ViewOn() {
+  relay.relayWrite(0, 1);
+  delay(500);
+  relay.relayWrite(0, 0);
+  
+  // Discard message(s) that received during delay()
+  twai_clear_receive_queue();
 }
 
 
 void SModeOn() {
+  relay.relayWrite(1, 1);
+  delay(500);
+  relay.relayWrite(1, 0);
+  
+  // Discard message(s) that received during delay()
+  twai_clear_receive_queue();
 }
 
 
 void SModeOff() {
+  relay.relayWrite(2, 1);
+  delay(500);
+  relay.relayWrite(2, 0);
+  
+  // Discard message(s) that received during delay()
+  twai_clear_receive_queue();
 }
 
 
@@ -349,7 +367,7 @@ void loop() {
                   // delay(50); // 50ms delay like real CCU
                   delay(50 / 2);
                   send_cancel_frame(&rx_frame);  // Transmit message
-                  // Discard message(s) that received during HAL_delay()
+                  // Discard message(s) that received during delay()
                   twai_clear_receive_queue();
                   CcuStatus = NOT_READY;
                 }
