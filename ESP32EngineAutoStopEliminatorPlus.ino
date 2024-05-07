@@ -223,11 +223,11 @@ void loop() {
             break;
           
           case CAN_ID_MCU:
-            if(Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
-            }
-            if((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
-            }
             Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
+            if(20 < Speed) {
+            }
+            if(Speed < 15) {
+            }
             break;
 
           case CAN_ID_SCU:
