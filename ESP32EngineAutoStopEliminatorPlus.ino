@@ -208,8 +208,7 @@ void loop() {
   static uint8_t Shift = 0;
   static float AccelPos = 0;
   static float Speed = 0;
-  static bool SpeedFlag = false;
-  static bool ShiftFlag = false;
+  static bool View = false;
   static bool SMode = false;
   
   if (!driver_installed) {
@@ -252,13 +251,13 @@ void loop() {
           case CAN_ID_MCU:
             Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
             if(20 < Speed) {
-              SpeedFlag = true;
+              View = false;
             }
             
             if(Speed < 15) {
-              if(SpeedFlag) {
+              if(! View) {
                 ViewOn();
-                SpeedFlag = false;
+                View = true;
               }
             }
             break;
@@ -268,17 +267,17 @@ void loop() {
               switch (rx_frame.data[3] & 0x07) {
                 case P:
                   if (DebugMode == DEBUG) {
-                    ShiftFlag = true;
                     Serial.printf("# Information: Change Another to P.\n");
                   }
+                  View = false;
                   break;
                 case D:
                   if (DebugMode == DEBUG) {
                     Serial.printf("# Information: Change Another to D.\n");
                   }
-                  if(ShiftFlag) {
+                  if(! View) {
                     ViewOn();
-                    ShiftFlag = false;
+                    View = true;
                   }
                   break;
                 // case R:
