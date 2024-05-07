@@ -35,6 +35,12 @@ enum debug_mode {
     CANDUMP
 };
 
+// SHIFT
+#define P 0x04
+#define R 0x03
+#define N 0x02
+#define D 0x01
+
 extern enum debug_mode DebugMode;
 
 // for Calculate Check Sum
