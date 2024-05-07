@@ -228,6 +228,7 @@ void loop() {
   static float Speed = 0;
   static bool View = false;
   static bool SMode = false;
+  static uint32_t SModeStart = 0;
   
   if (!driver_installed) {
     // Driver not installed
@@ -258,10 +259,13 @@ void loop() {
                 SModeOn();
                 SMode = true;
               }
+              SModeStart = millis();
             } else if(SMode) {
-              // Change SI-Mode S -> I
-              SModeOff();
-              SMode = false;
+              if(5 * 60 * 1000 < millis() - SModeStart) { // over 5 minutes
+                // Change SI-Mode S -> I
+                SModeOff();
+                SMode = false;
+              }
             }
             
             break;
