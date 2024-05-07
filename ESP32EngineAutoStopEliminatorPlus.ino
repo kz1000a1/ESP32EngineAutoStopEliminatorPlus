@@ -133,6 +133,18 @@ bool if_can_message_receive_is_pendig() {
 }
 
 
+void ViewOn() {
+}
+
+
+void SModeOn() {
+}
+
+
+void SModeOff() {
+}
+
+
 void setup() {
   if (DebugMode != NORMAL) {
     Serial.begin(115200);
@@ -196,6 +208,9 @@ void loop() {
   static uint8_t Shift = 0;
   static float AccelPos = 0;
   static float Speed = 0;
+  static bool SpeedFlag = false;
+  static bool ShiftFlag = false;
+  static bool SMode = false;
   
   if (!driver_installed) {
     // Driver not installed
@@ -220,13 +235,31 @@ void loop() {
           case CAN_ID_ECU:
             AccelPos = bytesToUint(rx_frame.data, 4, 1) / 2.55;
             // Serial.printf("Accel = %3.2f \%\n",AccelPos);
+            if(ACCEL_THRESHOLD <= AccelPos) {
+              if(! SMode) {
+                // Change SI-Mode I -> S
+                SModeOn();
+                SMode = true;
+              }
+            } else if(SMode) {
+              // Change SI-Mode S -> I
+              SModeOff();
+              SMode = false;
+            }
+            
             break;
           
           case CAN_ID_MCU:
             Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
             if(20 < Speed) {
+              SpeedFlag = true;
             }
+            
             if(Speed < 15) {
+              if(SpeedFlag) {
+                ViewOn();
+                SpeedFlag = false;
+              }
             }
             break;
 
@@ -235,24 +268,29 @@ void loop() {
               switch (rx_frame.data[3] & 0x07) {
                 case P:
                   if (DebugMode == DEBUG) {
+                    ShiftFlag = true;
                     Serial.printf("# Information: Change Another to P.\n");
-                  }
-                  break;
-                case R:
-                  if (DebugMode == DEBUG) {
-                    Serial.printf("# Information: Change Another to R.\n");
-                  }
-                  break;
-                case N:
-                  if (DebugMode == DEBUG) {
-                    Serial.printf("# Information: Change Another to N.\n");
                   }
                   break;
                 case D:
                   if (DebugMode == DEBUG) {
                     Serial.printf("# Information: Change Another to D.\n");
                   }
+                  if(ShiftFlag) {
+                    ViewOn();
+                    ShiftFlag = false;
+                  }
                   break;
+                // case R:
+                //   if (DebugMode == DEBUG) {
+                //     Serial.printf("# Information: Change Another to R.\n");
+                //   }
+                //   break;
+                // case N:
+                //   if (DebugMode == DEBUG) {
+                //     Serial.printf("# Information: Change Another to N.\n");
+                //   }
+                //   break;
               }
               Shift = rx_frame.data[3] & 0x07;
             }
