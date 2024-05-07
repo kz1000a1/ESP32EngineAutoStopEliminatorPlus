@@ -7,6 +7,10 @@
 #define CAN_ID_CCU 0x390
 #define CAN_ID_TCU 0x174
 
+#define CAN_ID_SCU 0x048  // Shift Position
+#define CAN_ID_MCU 0x139  // Speed
+#define CAN_ID_ECU 0x040  // Accelerator position
+
 // CCU and TCU STATUS
 enum cu_status {
     ENGINE_STOP,
