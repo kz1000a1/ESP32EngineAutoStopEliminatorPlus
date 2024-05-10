@@ -240,7 +240,7 @@ void loop() {
   if (if_can_message_receive_is_pendig()) {
     // One or more messages received. Handle all.
     while (twai_receive(&rx_frame, 0) == ESP_OK) {
-      if (DebugMode == CANDUMP || (DebugMode == DEBUG && (rx_frame.identifier == CAN_ID_CCU || rx_frame.identifier == CAN_ID_TCU))) {
+      if (DebugMode == CANDUMP || (DebugMode == DEBUG && (rx_frame.identifier == CAN_ID_CCU || rx_frame.identifier == CAN_ID_TCU || rx_frame.identifier == CAN_ID_SCU || rx_frame.identifier == CAN_ID_MCU || rx_frame.identifier == CAN_ID_ECU))) {
         print_frame(&rx_frame);
       }
 
@@ -252,12 +252,14 @@ void loop() {
         switch (rx_frame.identifier) {
           case CAN_ID_ECU:
             AccelPos = bytesToUint(rx_frame.data, 4, 1) / 2.55;
-            // Serial.printf("Accel = %3.2f \%\n",AccelPos);
             if(ACCEL_THRESHOLD <= AccelPos) {
               if(! SMode) {
                 // Change SI-Mode I -> S
                 SModeOn();
                 SMode = true;
+                if (DebugMode == DEBUG) {
+                  Serial.printf("# Information: Change I => S mode(Accel = %5.1f \%).\n",AccelPos);
+                }
               }
               SModeStart = millis();
             } else if(SMode) {
@@ -265,23 +267,32 @@ void loop() {
                 // Change SI-Mode S -> I
                 SModeOff();
                 SMode = false;
+                if (DebugMode == DEBUG) {
+                  Serial.printf("# Information: Change S => I mode(%3.1f min).\n", (millis() - SModeStart) / (60 * 1000);
+                }
               }
             }
             
             break;
           
           case CAN_ID_MCU:
-            Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
-            if(20 < Speed) {
+            if(Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
               View = false;
+              if (DebugMode == DEBUG) {
+                Serial.printf("# Information:Auto View Off(%5.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
+              }
             }
             
-            if(Speed < 15) {
+            if((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
               if(! View) {
                 ViewOn();
                 View = true;
+                if (DebugMode == DEBUG) {
+                  Serial.printf("# Information:View On(%5.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
+                }
               }
             }
+            Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
             break;
 
           case CAN_ID_SCU:
@@ -289,7 +300,7 @@ void loop() {
               switch (rx_frame.data[3] & 0x07) {
                 case P:
                   if (DebugMode == DEBUG) {
-                    Serial.printf("# Information: Change Another to P.\n");
+                    Serial.printf("# Information:Auto View Off(Shift 0x%x).\n", rx_frame.data[3] & 0x07);
                   }
                   View = false;
                   break;
@@ -300,6 +311,9 @@ void loop() {
                   if(! View) {
                     ViewOn();
                     View = true;
+                    if (DebugMode == DEBUG) {
+                      Serial.printf("# Information:View On(Shift 0x%x).\n", rx_frame.data[3] & 0x07);
+                    }
                   }
                   break;
                 // case R:
