@@ -102,22 +102,18 @@ bool if_can_message_receive_is_pendig() {
 
   // Check if alert happened
   twai_read_alerts(&alerts_triggered, pdMS_TO_TICKS(POLLING_RATE_MS));
-  twai_get_status_info(&twaistatus);
 
-  // Handle alerts
-  if (alerts_triggered & TWAI_ALERT_ERR_PASS) {
-    if (DebugMode == DEBUG) {
+  if (DebugMode == DEBUG) {
+    twai_get_status_info(&twaistatus);
+    // Handle alerts
+    if (alerts_triggered & TWAI_ALERT_ERR_PASS) {
       Serial.println("# Alert: TWAI controller has become error passive.");
     }
-  }
-  if (alerts_triggered & TWAI_ALERT_BUS_ERROR) {
-    if (DebugMode == DEBUG) {
+    if (alerts_triggered & TWAI_ALERT_BUS_ERROR) {
       Serial.println("# Alert: A (Bit, Stuff, CRC, Form, ACK) error has occurred on the bus.");
       Serial.printf("# Bus error count: %d\n", twaistatus.bus_error_count);
     }
-  }
-  if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL) {
-    if (DebugMode == DEBUG) {
+    if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL) {
       Serial.println("# Alert: The RX queue is full causing a received frame to be lost.");
       Serial.printf("# RX buffered: %d\t", twaistatus.msgs_to_rx);
       Serial.printf("RX missed: %d\t", twaistatus.rx_missed_count);
@@ -273,7 +269,7 @@ void loop() {
                 SMode = false;
                 if (DebugMode == DEBUG) {
                   Serial.printf("# Information: Change S => I mode(%.1f min).\n", (millis() - SModeStart) / (60.0 * 1000));
-                  Serial.printf("# millis(%d) - SModeStart(%d) = %d.\n", millis(), SModeStart, millis() - SModeStart);
+                  // Serial.printf("# millis(%d) - SModeStart(%d) = %d.\n", millis(), SModeStart, millis() - SModeStart);
                 }
               }
             }
