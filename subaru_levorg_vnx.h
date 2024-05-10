@@ -42,7 +42,10 @@ enum debug_mode {
 #define D 0x01
 
 // Threshold for change I -> S mode
-#define ACCEL_THRESHOLD 40
+#define ACCEL_THRESHOLD 25
+
+// Time to return I-MODE
+#define S_MODE_TIME_LIMIT 1
 
 extern enum debug_mode DebugMode;
 

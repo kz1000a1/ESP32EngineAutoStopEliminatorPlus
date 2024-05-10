@@ -178,12 +178,12 @@ void setup() {
   // Initialize configuration structures using macro initializers
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, (gpio_num_t)RX_PIN, TWAI_MODE_NORMAL);
   twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();  //Look in the api-reference for other speed sets.
-  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-  // twai_filter_config_t f_config = { .acceptance_code = CAN_ID_CCU << 21, .acceptance_mask = ((CAN_ID_CCU << 21) ^ (CAN_ID_TCU << 21)) | 0x1fffff, .single_filter = true };
+  // twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+  twai_filter_config_t f_config = { .acceptance_code = CAN_ID_CCU << 21, .acceptance_mask = (0x7fd << 21) | 0x1fffff, .single_filter = true };
 
-  // if (DebugMode == CANDUMP) {
-  //   f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-  // }
+  if (DebugMode == CANDUMP) {
+    f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+  }
 
   // Install TWAI driver
   if (twai_driver_install(&g_config, &t_config, &f_config) != ESP_OK) {
@@ -226,7 +226,8 @@ void loop() {
   static uint8_t Shift = 0;
   static float AccelPos = 0;
   static float Speed = 0;
-  static bool View = false;
+  static bool Over20kmh = false;
+  static bool ShiftP = false;
   static bool SMode = false;
   static uint32_t SModeStart = 0;
 
@@ -252,47 +253,50 @@ void loop() {
         switch (rx_frame.identifier) {
           case CAN_ID_ECU:
             AccelPos = bytesToUint(rx_frame.data, 4, 1) / 2.55;
+            // if (DebugMode == DEBUG) {
+            //   Serial.printf("# Information: AccelPos = %.1f \%).\n", AccelPos);
+            // }
             if (ACCEL_THRESHOLD <= AccelPos) {
               if (!SMode) {
                 // Change SI-Mode I -> S
                 SModeOn();
                 SMode = true;
                 if (DebugMode == DEBUG) {
-                  Serial.printf("# Information: Change I => S mode(Accel = %5.1f \%).\n", AccelPos);
+                  Serial.printf("# Information: Change I => S mode(Accel = %.1f \%).\n", AccelPos);
                 }
               }
               SModeStart = millis();
             } else if (SMode) {
-              if (5 * 60 * 1000 < millis() - SModeStart) {  // over 5 minutes
+              if (S_MODE_TIME_LIMIT * 60 * 1000 < millis() - SModeStart) {  // over 5 minutes
                 // Change SI-Mode S -> I
                 SModeOff();
                 SMode = false;
                 if (DebugMode == DEBUG) {
-                  Serial.printf("# Information: Change S => I mode(%3.1f min).\n", (millis() - SModeStart) / (60 * 1000));
+                  Serial.printf("# Information: Change S => I mode(%.1f min).\n", (millis() - SModeStart) / (60.0 * 1000));
+                  Serial.printf("# millis(%d) - SModeStart(%d) = %d.\n", millis(), SModeStart, millis() - SModeStart);
                 }
               }
             }
-
+            PreviousCanId = rx_frame.identifier;
             break;
 
           case CAN_ID_MCU:
-            if (Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
-              View = false;
+            if (Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 && (!Over20kmh)) {
+              Over20kmh = true;
               if (DebugMode == DEBUG) {
-                Serial.printf("# Information:Auto View Off(%5.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
+                Serial.printf("# Information:Auto View Off(%.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
               }
             }
 
-            if ((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
-              if (!View) {
-                ViewOn();
-                View = true;
-                if (DebugMode == DEBUG) {
-                  Serial.printf("# Information:View On(%5.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
-                }
+            if ((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed && Over20kmh) {
+              ViewOn();
+              Over20kmh = false;
+              if (DebugMode == DEBUG) {
+                Serial.printf("# Information:View On(%.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
               }
             }
             Speed = (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625;
+            PreviousCanId = rx_frame.identifier;
             break;
 
           case CAN_ID_SCU:
@@ -302,15 +306,15 @@ void loop() {
                   if (DebugMode == DEBUG) {
                     Serial.printf("# Information:Auto View Off(Shift 0x%x).\n", rx_frame.data[3] & 0x07);
                   }
-                  View = false;
+                  ShiftP = true;
                   break;
                 case D:
                   if (DebugMode == DEBUG) {
-                    Serial.printf("# Information: Change Another to D.\n");
+                    Serial.printf("# Information: Change Another(0x%x) to D.\n", Shift);
                   }
-                  if (!View) {
+                  if (ShiftP) {
                     ViewOn();
-                    View = true;
+                    ShiftP = false;
                     if (DebugMode == DEBUG) {
                       Serial.printf("# Information:View On(Shift 0x%x).\n", rx_frame.data[3] & 0x07);
                     }
@@ -329,6 +333,7 @@ void loop() {
               }
               Shift = rx_frame.data[3] & 0x07;
             }
+            PreviousCanId = rx_frame.identifier;
             break;
 
           case CAN_ID_TCU:
@@ -367,9 +372,14 @@ void loop() {
               Shift = 0;
               AccelPos = 0;
               Speed = 0;
-              View = false;
+              ShiftP = false;
+              Over20kmh = false;
               SMode = false;
               SModeStart = 0;
+              if (DebugMode == DEBUG) {
+                // Output Information message
+                Serial.printf("# Information: Engine stop.\n");
+              }
             } else if (rx_frame.data[6] & 0x40) {
               if (DebugMode == DEBUG) {
                 // Output Information message
