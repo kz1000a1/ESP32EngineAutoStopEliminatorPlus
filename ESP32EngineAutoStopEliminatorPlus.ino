@@ -99,7 +99,7 @@ bool if_can_message_receive_is_pendig() {
 
   uint32_t alerts_triggered;
   twai_status_info_t twaistatus;
-  
+
   // Check if alert happened
   twai_read_alerts(&alerts_triggered, pdMS_TO_TICKS(POLLING_RATE_MS));
   twai_get_status_info(&twaistatus);
@@ -137,7 +137,7 @@ void ViewOn() {
   relay.relayWrite(0, 1);
   delay(500);
   relay.relayWrite(0, 0);
-  
+
   // Discard message(s) that received during delay()
   twai_clear_receive_queue();
 }
@@ -147,7 +147,7 @@ void SModeOn() {
   relay.relayWrite(1, 1);
   delay(500);
   relay.relayWrite(1, 0);
-  
+
   // Discard message(s) that received during delay()
   twai_clear_receive_queue();
 }
@@ -157,7 +157,7 @@ void SModeOff() {
   relay.relayWrite(2, 1);
   delay(500);
   relay.relayWrite(2, 0);
-  
+
   // Discard message(s) that received during delay()
   twai_clear_receive_queue();
 }
@@ -174,7 +174,7 @@ void setup() {
   relay.begin(&Wire, SDA_PIN, SCL_PIN);
   relay.Init(1);  // Set the lamp and relay to synchronous mode(Async = 0,Sync = 1).
   relay.relayAll(0);
-  
+
   // Initialize configuration structures using macro initializers
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, (gpio_num_t)RX_PIN, TWAI_MODE_NORMAL);
   twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();  //Look in the api-reference for other speed sets.
@@ -229,7 +229,7 @@ void loop() {
   static bool View = false;
   static bool SMode = false;
   static uint32_t SModeStart = 0;
-  
+
   if (!driver_installed) {
     // Driver not installed
     delay(1000);
@@ -252,39 +252,39 @@ void loop() {
         switch (rx_frame.identifier) {
           case CAN_ID_ECU:
             AccelPos = bytesToUint(rx_frame.data, 4, 1) / 2.55;
-            if(ACCEL_THRESHOLD <= AccelPos) {
-              if(! SMode) {
+            if (ACCEL_THRESHOLD <= AccelPos) {
+              if (!SMode) {
                 // Change SI-Mode I -> S
                 SModeOn();
                 SMode = true;
                 if (DebugMode == DEBUG) {
-                  Serial.printf("# Information: Change I => S mode(Accel = %5.1f \%).\n",AccelPos);
+                  Serial.printf("# Information: Change I => S mode(Accel = %5.1f \%).\n", AccelPos);
                 }
               }
               SModeStart = millis();
-            } else if(SMode) {
-              if(5 * 60 * 1000 < millis() - SModeStart) { // over 5 minutes
+            } else if (SMode) {
+              if (5 * 60 * 1000 < millis() - SModeStart) {  // over 5 minutes
                 // Change SI-Mode S -> I
                 SModeOff();
                 SMode = false;
                 if (DebugMode == DEBUG) {
-                  Serial.printf("# Information: Change S => I mode(%3.1f min).\n", (millis() - SModeStart) / (60 * 1000);
+                  Serial.printf("# Information: Change S => I mode(%3.1f min).\n", (millis() - SModeStart) / (60 * 1000));
                 }
               }
             }
-            
+
             break;
-          
+
           case CAN_ID_MCU:
-            if(Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
+            if (Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625) {
               View = false;
               if (DebugMode == DEBUG) {
                 Serial.printf("# Information:Auto View Off(%5.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
               }
             }
-            
-            if((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
-              if(! View) {
+
+            if ((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed) {
+              if (!View) {
                 ViewOn();
                 View = true;
                 if (DebugMode == DEBUG) {
@@ -308,7 +308,7 @@ void loop() {
                   if (DebugMode == DEBUG) {
                     Serial.printf("# Information: Change Another to D.\n");
                   }
-                  if(! View) {
+                  if (!View) {
                     ViewOn();
                     View = true;
                     if (DebugMode == DEBUG) {
@@ -316,16 +316,16 @@ void loop() {
                     }
                   }
                   break;
-                // case R:
-                //   if (DebugMode == DEBUG) {
-                //     Serial.printf("# Information: Change Another to R.\n");
-                //   }
-                //   break;
-                // case N:
-                //   if (DebugMode == DEBUG) {
-                //     Serial.printf("# Information: Change Another to N.\n");
-                //   }
-                //   break;
+                  // case R:
+                  //   if (DebugMode == DEBUG) {
+                  //     Serial.printf("# Information: Change Another to R.\n");
+                  //   }
+                  //   break;
+                  // case N:
+                  //   if (DebugMode == DEBUG) {
+                  //     Serial.printf("# Information: Change Another to N.\n");
+                  //   }
+                  //   break;
               }
               Shift = rx_frame.data[3] & 0x07;
             }
@@ -405,10 +405,10 @@ void loop() {
             PreviousCanId = rx_frame.identifier;
             break;
 
-          // default:  // Unexpected can id
+            // default:  // Unexpected can id
             // if (DebugMode == DEBUG) {
-              // Output Warning message
-              // Serial.printf("# Warning: Unexpected can id (0x%03x).\n", rx_frame.identifier);
+            // Output Warning message
+            // Serial.printf("# Warning: Unexpected can id (0x%03x).\n", rx_frame.identifier);
             // }
             // break;
         }
