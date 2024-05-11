@@ -302,6 +302,7 @@ void loop() {
                   if (DebugMode == DEBUG) {
                     Serial.printf("# Information:Auto View Off(Shift 0x%x).\n", rx_frame.data[3] & 0x07);
                   }
+                  // ParkingBrakeOn();
                   ShiftP = true;
                   break;
                 case D:
