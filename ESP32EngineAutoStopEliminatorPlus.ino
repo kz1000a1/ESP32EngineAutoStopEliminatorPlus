@@ -277,14 +277,14 @@ void loop() {
             break;
 
           case CAN_ID_MCU:
-            if (Speed < 20 && 20 < (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 && (!Over20kmh)) {
+            if (Speed < 20 && 20 <= (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 && (!Over20kmh)) {
               Over20kmh = true;
               if (DebugMode == DEBUG) {
                 Serial.printf("# Information:Auto View Off(%.1f km/h).\n", (rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625);
               }
             }
 
-            if ((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 < 15 && 15 < Speed && Over20kmh) {
+            if ((rx_frame.data[2] + ((rx_frame.data[3] & 0x1f) << 8)) * 0.05625 <= 15 && 15 < Speed && Over20kmh) {
               ViewOn();
               Over20kmh = false;
               if (DebugMode == DEBUG) {
