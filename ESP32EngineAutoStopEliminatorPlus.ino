@@ -263,12 +263,12 @@ void loop() {
               }
               SModeStart = millis();
             } else if (SMode) {
-              if (S_MODE_TIME_LIMIT * 60 * 1000 < millis() - SModeStart) {  // over 5 minutes
+              if (S_MODE_TIME_LIMIT * 1000 < millis() - SModeStart) {  // over S_MODE_TIME_LIMIT sec
                 // Change SI-Mode S -> I
                 SModeOff();
                 SMode = false;
                 if (DebugMode == DEBUG) {
-                  Serial.printf("# Information: Change S => I mode(%.1f min).\n", (millis() - SModeStart) / (60.0 * 1000));
+                  Serial.printf("# Information: Change S => I mode(%.1f sec).\n", (millis() - SModeStart) / 1000.0);
                   // Serial.printf("# millis(%d) - SModeStart(%d) = %d.\n", millis(), SModeStart, millis() - SModeStart);
                 }
               }
