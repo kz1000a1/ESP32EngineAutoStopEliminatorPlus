@@ -45,7 +45,7 @@ enum debug_mode {
 #define ACCEL_THRESHOLD 25
 
 // Time to return I-MODE
-#define S_MODE_TIME_LIMIT 1
+#define S_MODE_TIME_LIMIT 60
 
 extern enum debug_mode DebugMode;
 
